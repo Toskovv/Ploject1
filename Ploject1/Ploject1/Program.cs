@@ -2,7 +2,12 @@ using CarStore.BL.Interfaces;
 using CarStore.BL.Services;
 using CarStore.DL.Interfaces;
 using CarStore.DL.Repositories;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Builder;
+using FluentValidation;
+using CarStore.Models;
+using CarStore.Models.Validators;
+using Serilog;
 
 namespace Ploject1
 {
@@ -12,28 +17,36 @@ namespace Ploject1
         {
 
             var builder = WebApplication.CreateBuilder(args);
-           
-            // Add services to the container.
+
+            builder.Services.AddControllers().AddFluentValidation(fv =>fv.RegisterValidatorsFromAssemblyContaining<OwnerValidator>());
             builder.Services.AddScoped<ICarService, CarService>();
             builder.Services.AddScoped<ICarRepository, CarRepository>();
             builder.Services.AddControllers();
 
-            // Add Swagger services
+
             builder.Services.AddSwaggerGen();
+            builder.Services.AddScoped<IOwnerRepository, OwnerRepository>();
+            builder.Services.AddScoped<IOwnerService, OwnerService>();
+            builder.Services.AddHealthChecks();
+
+            Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateLogger();
+
+            builder.Host.UseSerilog();
 
             var app = builder.Build();
             if (app.Environment.IsDevelopment())
             {
-                //app.UseSwagger();
+                
                 app.UseSwagger();
                 app.UseSwaggerUI();
 
             }
-            // Configure the HTTP request pipeline.
 
+            app.MapHealthChecks("/health");
             app.UseHttpsRedirection();
             app.UseAuthorization();
             app.MapControllers();
+     
 
             app.Run();
         }
